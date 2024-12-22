@@ -1,35 +1,22 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.1.0";
-
-const supabase = createClient(
-  Deno.env.get("SUPABASE_URL")!,
-  Deno.env.get("SUPABASE_ANON_KEY")!
-);
+import { supabase } from "../../src/supabase.client.ts";
+import { handleError } from "../../src/errors.ts";
 
 Deno.serve(async (req) => {
   if (req.method !== "GET") {
-    return new Response(JSON.stringify({ error: "Method not allowed" }), {
-      status: 405,
-      headers: { "Content-Type": "application/json" },
-    });
+    return handleError("Method not allowed", 405);
   }
 
   const authHeader = req.headers.get("Authorization");
   if (!authHeader) {
-    return new Response(
-      JSON.stringify({ error: "Unauthorized: Missing token" }),
-      { status: 401, headers: { "Content-Type": "application/json" } }
-    );
+    return handleError("Unauthorized: Missing token", 401);
   }
 
   const token = authHeader.replace("Bearer ", "");
   const { data: user, error: authError } = await supabase.auth.getUser(token);
 
   if (authError || !user) {
-    return new Response(
-      JSON.stringify({ error: "Unauthorized: Invalid token" }),
-      { status: 401, headers: { "Content-Type": "application/json" } }
-    );
+    return handleError("Unauthorized: Invalid token", 401);
   }
 
   const url = new URL(req.url);
@@ -52,10 +39,7 @@ Deno.serve(async (req) => {
   const { data, error } = await query;
 
   if (error) {
-    return new Response(
-      JSON.stringify({ error: error.message }),
-      { status: 400, headers: { "Content-Type": "application/json" } }
-    );
+    return handleError(error.message, 400);
   }
 
   return new Response(JSON.stringify({data}), {
