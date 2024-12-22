@@ -1,6 +1,17 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { supabase } from "../../src/supabase.client.ts";
-import { handleError } from "../../src/errors.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.1.0";
+
+export function handleError(message: string, status: number) {
+  return new Response(
+    JSON.stringify({ error: message }),
+    { status, headers: { "Content-Type": "application/json" } }
+  );
+}
+
+export const supabase = createClient(
+  Deno.env.get("SUPABASE_URL")!,
+  Deno.env.get("SUPABASE_ANON_KEY")!
+);
 
 Deno.serve(async (req) => {
   if (req.method !== "GET") {
